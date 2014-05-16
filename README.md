@@ -16,7 +16,7 @@ But unlike JSON, it is very fast and small.
 ## Build
 
 ```
-% git clone --depth=1 https://github.com/xxx.git
+% git clone --depth=1 https://github.com/karakurihiden/msgpack-php.git
 % cd msgpack-php
 % phpize
 % ./configure
