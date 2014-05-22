@@ -230,7 +230,7 @@ MSGPACK_EXTENDED_FUNCTION(serialize)
     int str_len;
     smart_str buf = {0};
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lp",
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls",
                               &type, &str, &str_len) == FAILURE) {
         return;
     }

@@ -408,7 +408,7 @@ php_msgpack_serialize_class_property(smart_str *buf, zend_class_entry *ce,
         for (;; zend_hash_move_forward_ex(Z_OBJPROP_P(val), &pos)) {
             n = zend_hash_get_current_key_ex(Z_OBJPROP_P(val), &key, &key_len,
                                              &i, 0, &pos);
-            if (n == HASH_KEY_NON_EXISTENT) {
+            if (n == HASH_KEY_NON_EXISTANT) {
                 break;
             }
 

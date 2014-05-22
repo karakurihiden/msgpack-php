@@ -5,6 +5,9 @@ serialize incorrectly saving objects when they are cloned
 if (PHP_INT_SIZE != 8) {
     die("skip this test is for 64bit platform only");
 }
+if (version_compare(PHP_VERSION, '5.5.0') < 0) {
+    die("skip this test is for 5.5 or newer");
+}
 ?>
 --FILE--
 <?php
