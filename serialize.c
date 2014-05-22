@@ -421,7 +421,6 @@ php_msgpack_serialize_class_property(smart_str *buf, zend_class_entry *ce,
             }
 
             if (key_len > 3 && key[0] == '\0') {
-                long type;
                 char *prop_name;
                 uint prop_len;
 
@@ -494,7 +493,6 @@ php_msgpack_serialize_class_sleep(smart_str *buf, zend_class_entry *ce,
                                              (void **)&key, &pos) == SUCCESS) {
             char *prop_name = NULL;
             int prop_len = 0;
-            long type;
             zval **tmp = NULL;
 
             if (Z_TYPE_PP(key) != IS_STRING) {

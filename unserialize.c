@@ -111,7 +111,6 @@ php_msgpack_unserialize_push(php_msgpack_unserialize_data_t *data,
     entries = (*data)->last;
 
     if (!entries || entries->used_slots == PHP_MSGPACK_ENTRIES_MAX) {
-        //php_printf("==> emalloc:a\n");
         entries = emalloc(sizeof(php_msgpack_unserialize_entries_t));
         entries->used_slots = 0;
         entries->next = 0;
@@ -126,37 +125,8 @@ php_msgpack_unserialize_push(php_msgpack_unserialize_data_t *data,
         (*data)->last = entries;
     }
 
-    //php_printf("==> P: %ld\n", entries->used_slots);
-
     entries->data[entries->used_slots++] = *return_value;
 }
-
-/*
-php_msgpack_unserialize_push_dtor(php_msgpack_unserialize_data_t *data,
-                                  zval **zv)
-{
-    php_msgpack_unserialize_entries_t *entries = (*data)->last_dtor;
-
-    if (!entries || entries->used_slots == PHP_MSGPACK_ENTRIES_MAX) {
-        //php_printf("-- emalloc:b\n");
-        entries = emalloc(sizeof(php_msgpack_unserialize_entries_t));
-        entries->used_slots = 0;
-        entries->next = 0;
-
-        if (!(*data)->first_dtor) {
-            (*data)->first_dtor = entries;
-        } else {
-            ((php_msgpack_unserialize_entries_t *)
-             (*data)->last_dtor)->next = entries;
-        }
-
-        (*data)->last_dtor = entries;
-    }
-
-    Z_ADDREF_PP(zv);
-    entries->data[entries->used_slots++] = *zv;
-}
-*/
 
 static inline int
 php_msgpack_unserialize_access(php_msgpack_unserialize_data_t *data,
@@ -457,34 +427,6 @@ php_msgpack_unserialize_key(PHP_MSGPACK_UNSERIALIZE_PARAMETER,
         smart_str_appendl(str, (char *)cursor, count);
         return IS_STRING;
     }
-    /* float 32 */
-    /*
-    SWITCH_RANGE_TO(b, 0xca)
-    {
-        union php_msgpack_unserialize_cast_block_t cb;
-        cursor++;
-        PHP_MSGPACK_UNSERIALIZE_CAST_BLOCK(cb, cursor, 4, p, limit);
-        cb.u32 = msgpack_be32(cb.u32);
-        INIT_PZVAL(*return_value);
-        ZVAL_DOUBLE(*return_value, cb.f);
-        //php_msgpack_unserialize_push(data, return_value);
-        return 1;
-    }
-    */
-    /* double / float 64 */
-    /*
-    SWITCH_RANGE_TO(b, 0xcb)
-    {
-        union php_msgpack_unserialize_cast_block_t cb;
-        cursor++;
-        PHP_MSGPACK_UNSERIALIZE_CAST_BLOCK(cb, cursor, 8, p, limit);
-        cb.u64 = msgpack_be64(cb.u64);
-        INIT_PZVAL(*return_value);
-        ZVAL_DOUBLE(*return_value, cb.d);
-        //php_msgpack_unserialize_push(data, return_value);
-        return 1;
-    }
-    */
     /* uint 8 */
     SWITCH_RANGE_TO(b, 0xcc)
     {
@@ -649,7 +591,6 @@ php_msgpack_unserialize_nested_array(PHP_MSGPACK_UNSERIALIZE_PARAMETER,
         ALLOC_INIT_ZVAL(val);
         /* php_msgpack_unserialize_push(data, &val); */
         if (!php_msgpack_unserialize(&val, p, max, data, NULL TSRMLS_CC)) {
-            //php_printf("==> invalid array\n");
             FREE_ZVAL(val);
             return 0;
         }
@@ -668,7 +609,7 @@ php_msgpack_unserialize_nested_map(PHP_MSGPACK_UNSERIALIZE_PARAMETER,
     array_init_size(*return_value, count);
 
     while (count-- > 0) {
-        zval *val, **tmp;
+        zval *val;
         long index = 0;
         int type;
         php_msgpack_unserialize_str_t key;
@@ -685,7 +626,6 @@ php_msgpack_unserialize_nested_map(PHP_MSGPACK_UNSERIALIZE_PARAMETER,
         /* value */
         ALLOC_INIT_ZVAL(val);
         if (!php_msgpack_unserialize(&val, p, max, data, NULL TSRMLS_CC)) {
-            //php_printf("==> invalid map value\n");
             PHP_MSGPACK_UNSERIALIZE_STR_DESTROY(key);
             FREE_ZVAL(val);
             return 0;
@@ -693,26 +633,12 @@ php_msgpack_unserialize_nested_map(PHP_MSGPACK_UNSERIALIZE_PARAMETER,
 
         if (type == IS_STRING) {
             PHP_MSGPACK_UNSERIALIZE_STR_0(key);
-            /*
-            if (zend_symtable_find(Z_ARRVAL_PP(return_value),
-                                   PHP_MSGPACK_UNSERIALIZE_STR_DATA(key),
-                                   PHP_MSGPACK_UNSERIALIZE_STR_SIZE(key) + 1,
-                                   (void **)&tmp) == SUCCESS) {
-                php_msgpack_unserialize_push_dtor(data, tmp);
-            }
-            */
             zend_symtable_update(Z_ARRVAL_PP(return_value),
                                  PHP_MSGPACK_UNSERIALIZE_STR_DATA(key),
                                  PHP_MSGPACK_UNSERIALIZE_STR_SIZE(key) + 1,
                                  &val, sizeof(val), NULL);
             PHP_MSGPACK_UNSERIALIZE_STR_DESTROY(key);
         } else {
-            /*
-            if (zend_hash_index_find(Z_ARRVAL_PP(return_value),
-                                     index, (void **)&tmp) == SUCCESS) {
-                php_msgpack_unserialize_push_dtor(data, tmp);
-            }
-            */
             zend_hash_index_update(Z_ARRVAL_PP(return_value), index,
                                    &val, sizeof(val), NULL);
         }
@@ -774,12 +700,10 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
     }
 
     if (type == MSGPACK_G(type.class)) {
-        zend_class_entry *ce; //, **pce;
+        zend_class_entry *ce;
         zend_bool incomplete_class = 0;
         long count = 0;
         php_msgpack_unserialize_str_t name;
-
-        //php_printf("==> extended: class\n");
 
         /* class name */
         PHP_MSGPACK_UNSERIALIZE_STR_INIT(name, (*(data))->str);
@@ -815,7 +739,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         }
 
         PHP_MSGPACK_UNSERIALIZE_STR_DESTROY(name);
-        //php_msgpack_unserialize_str_free(name);
 
         /* property count */
         if (!php_msgpack_unserialize_long(NULL, p, max, NULL, NULL TSRMLS_CC,
@@ -837,7 +760,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
                 type = (int)*cursor;
                 *p = (++cursor);
             }
-            //php_printf("type ==> %ld\n", type);
 
             /* name */
             PHP_MSGPACK_UNSERIALIZE_STR_INIT(key, (*(data))->str);
@@ -860,17 +782,9 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
             }
             PHP_MSGPACK_UNSERIALIZE_STR_0(key);
 
-            /*
-            php_printf("name ==> (%ld) %.*s\n",
-                       PHP_MSGPACK_UNSERIALIZE_STR_SIZE(key),
-                       PHP_MSGPACK_UNSERIALIZE_STR_SIZE(key),
-                       PHP_MSGPACK_UNSERIALIZE_STR_DATA(key));
-            */
-
             /* value */
             ALLOC_INIT_ZVAL(val);
             if (!php_msgpack_unserialize(&val, p, max, data, NULL TSRMLS_CC)) {
-                //php_printf("==> invalid propery value\n");
                 PHP_MSGPACK_UNSERIALIZE_STR_DESTROY(key);
                 FREE_ZVAL(val);
                 return 0;
@@ -918,7 +832,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         zend_bool incomplete_class = 0;
         php_msgpack_unserialize_str_t name;
 
-        //php_printf("==> extended: serializable\n");
         /* class name */
         PHP_MSGPACK_UNSERIALIZE_STR_INIT(name, (*(data))->str);
         if (!php_msgpack_unserialize_string(NULL, p, max, NULL, NULL TSRMLS_CC,
@@ -973,8 +886,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
 
         args[0] = &zv;
 
-        //php_printf("==> call unserialize\n");
-
         INIT_PZVAL(&func);
         ZVAL_STRINGL(&func, "unserialize", sizeof("unserialize") - 1, 0);
         if (call_user_function_ex(EG(function_table), return_value, &func,
@@ -993,7 +904,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         /* Reference(R) */
         zval **tmp;
         long num = 0;
-        //php_printf("==> extended: reference: [R]\n");
         //int format
         if (!php_msgpack_unserialize_long(NULL, p, max, NULL, NULL TSRMLS_CC,
                                           &num)) {
@@ -1019,7 +929,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         /* Reference(r) */
         zval **tmp;
         long num = 0;
-        //php_printf("==> extended: reference: [r]\n");
         //int format
         if (!php_msgpack_unserialize_long(NULL, p, max, NULL, NULL TSRMLS_CC,
                                           &num)) {
@@ -1043,7 +952,6 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         return 1;
     } else if (type == MSGPACK_G(type.reference)) {
         /* Reference */
-        //php_printf("==> extended: reference\n");
         if (!php_msgpack_unserialize(return_value, p, max,
                                      NULL, NULL TSRMLS_CC)) {
             MSGPACK_ERR(E_WARNING, "reference\n");
@@ -1518,7 +1426,6 @@ PHP_MSGPACK_API void
 php_msgpack_unserialize_destroy(php_msgpack_unserialize_data_t *data)
 {
     void *next;
-    long i;
     php_msgpack_unserialize_entries_t *entries = (*data)->first;
 
     while (entries) {
@@ -1526,17 +1433,4 @@ php_msgpack_unserialize_destroy(php_msgpack_unserialize_data_t *data)
         efree(entries);
         entries = next;
     }
-
-    /*
-    entries = (*data)->first_dtor;
-
-    while (entries) {
-        for (i = 0; i < entries->used_slots; i++) {
-            zval_ptr_dtor(&entries->data[i]);
-        }
-        next = entries->next;
-        efree(entries);
-        entries = next;
-    }
-    */
 }
