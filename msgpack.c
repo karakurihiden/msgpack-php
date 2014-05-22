@@ -112,7 +112,7 @@ ZEND_END_ARG_INFO()
 MSGPACK_FUNCTION(serialize)
 {
     zval *struc;
-    php_msgpack_serialize_data_t data;
+    php_msgpack_serialize_data_t *data = NULL;
     smart_str buf = { NULL, 0, 0 };
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z",
@@ -148,7 +148,7 @@ MSGPACK_FUNCTION(unserialize)
     char *buf;
     int buf_len;
     const unsigned char *p;
-    php_msgpack_unserialize_data_t data;
+    php_msgpack_unserialize_data_t *data = NULL;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
                               &buf, &buf_len) == FAILURE) {
@@ -164,7 +164,7 @@ MSGPACK_FUNCTION(unserialize)
     PHP_MSGPACK_UNSERIALIZE_INIT(data);
 
     if (!php_msgpack_unserialize(&return_value, &p, p + buf_len,
-                                 &data, NULL TSRMLS_CC) ||
+                                 data, NULL TSRMLS_CC) ||
         ((char *)p - buf) != buf_len) {
         PHP_MSGPACK_UNSERIALIZE_DESTROY(data);
         zval_dtor(return_value);

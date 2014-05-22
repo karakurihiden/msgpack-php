@@ -18,7 +18,7 @@ struct php_msgpack_unserialize_data {
     smart_str *str;
 };
 
-typedef struct php_msgpack_unserialize_data* php_msgpack_unserialize_data_t;
+typedef struct php_msgpack_unserialize_data php_msgpack_unserialize_data_t;
 
 PHP_MSGPACK_API int php_msgpack_unserialize(zval **return_value, const unsigned char **p, const unsigned char *max, php_msgpack_unserialize_data_t *data, void *status TSRMLS_DC);
 
@@ -26,12 +26,12 @@ PHP_MSGPACK_API void php_msgpack_unserialize_destroy(php_msgpack_unserialize_dat
 
 #define PHP_MSGPACK_UNSERIALIZE_INIT(data) \
 do { \
-    if (MSGPACK_G(lock) || !MSGPACK_G(unserialize).level) { \
-        struct php_msgpack_unserialize_data u; \
+    if (MSGPACK_G(lock) || !MSGPACK_G(unserialize).level || !MSGPACK_G(unserialize).data) { \
+        php_msgpack_unserialize_data_t u; \
         smart_str str = { NULL, 0, 0 }; \
         php_msgpack_unserialize_entries_t *entries = emalloc(sizeof(php_msgpack_unserialize_entries_t)); \
         entries->used_slots = 0; \
-        entries->next = 0; \
+        entries->next = NULL; \
         u.str = &str; \
         u.first = u.last = entries; \
         data = &u; \
@@ -40,7 +40,7 @@ do { \
            MSGPACK_G(unserialize).level = 1; \
         } \
     } else { \
-        data = (php_msgpack_unserialize_data_t)MSGPACK_G(unserialize).data; \
+        data = (php_msgpack_unserialize_data_t *)MSGPACK_G(unserialize).data; \
         ++MSGPACK_G(unserialize).level; \
     } \
 } while (0)
@@ -49,11 +49,11 @@ do { \
 do { \
     if (MSGPACK_G(lock) || !MSGPACK_G(unserialize).level) { \
         smart_str_free((data)->str); \
-        php_msgpack_unserialize_destroy(&(data)); \
+        php_msgpack_unserialize_destroy(data);  \
     } else { \
         if (!--MSGPACK_G(unserialize).level) { \
             smart_str_free((data)->str); \
-            php_msgpack_unserialize_destroy(&(data)); \
+            php_msgpack_unserialize_destroy(data); \
             MSGPACK_G(unserialize).data = NULL; \
         } \
     } \

@@ -108,21 +108,20 @@ php_msgpack_unserialize_push(php_msgpack_unserialize_data_t *data,
         return;
     }
 
-    entries = (*data)->last;
+    entries = data->last;
 
     if (!entries || entries->used_slots == PHP_MSGPACK_ENTRIES_MAX) {
         entries = emalloc(sizeof(php_msgpack_unserialize_entries_t));
         entries->used_slots = 0;
-        entries->next = 0;
+        entries->next = NULL;
 
-        if (!(*data)->first) {
-            (*data)->first = entries;
+        if (!(data->first)) {
+            data->first = entries;
         } else {
-            ((php_msgpack_unserialize_entries_t *)
-             (*data)->last)->next = entries;
+            ((php_msgpack_unserialize_entries_t *)(data->last))->next = entries;
         }
 
-        (*data)->last = entries;
+        data->last = entries;
     }
 
     entries->data[entries->used_slots++] = *return_value;
@@ -132,7 +131,7 @@ static inline int
 php_msgpack_unserialize_access(php_msgpack_unserialize_data_t *data,
                                long id, zval ***store)
 {
-    php_msgpack_unserialize_entries_t *entries = (*data)->first;
+    php_msgpack_unserialize_entries_t *entries = data->first;
 
     while (id >= PHP_MSGPACK_ENTRIES_MAX && entries &&
            entries->used_slots == PHP_MSGPACK_ENTRIES_MAX) {
@@ -615,7 +614,7 @@ php_msgpack_unserialize_nested_map(PHP_MSGPACK_UNSERIALIZE_PARAMETER,
         php_msgpack_unserialize_str_t key;
 
         /* key */
-        PHP_MSGPACK_UNSERIALIZE_STR_INIT(key, (*(data))->str);
+        PHP_MSGPACK_UNSERIALIZE_STR_INIT(key, data->str);
         type = php_msgpack_unserialize_key(NULL, p, max, data, NULL TSRMLS_CC,
                                            &index, key.str);
         if (!type) {
@@ -706,7 +705,7 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         php_msgpack_unserialize_str_t name;
 
         /* class name */
-        PHP_MSGPACK_UNSERIALIZE_STR_INIT(name, (*(data))->str);
+        PHP_MSGPACK_UNSERIALIZE_STR_INIT(name, data->str);
         if (!php_msgpack_unserialize_string(NULL, p, max, NULL, NULL TSRMLS_CC,
                                             name.str)) {
             MSGPACK_ERR(E_WARNING, "extended class name\n");
@@ -762,7 +761,7 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
             }
 
             /* name */
-            PHP_MSGPACK_UNSERIALIZE_STR_INIT(key, (*(data))->str);
+            PHP_MSGPACK_UNSERIALIZE_STR_INIT(key, data->str);
             if (type == MSGPACK_EXTENDED_PROTECTED) {
                 /* protected */
                 smart_str_appendc(key.str, 0x00);
@@ -833,7 +832,7 @@ php_msgpack_unserialize_extended(PHP_MSGPACK_UNSERIALIZE_PARAMETER, int type)
         php_msgpack_unserialize_str_t name;
 
         /* class name */
-        PHP_MSGPACK_UNSERIALIZE_STR_INIT(name, (*(data))->str);
+        PHP_MSGPACK_UNSERIALIZE_STR_INIT(name, data->str);
         if (!php_msgpack_unserialize_string(NULL, p, max, NULL, NULL TSRMLS_CC,
                                             name.str)) {
             MSGPACK_ERR(E_WARNING, "extended serializable class name\n");
@@ -1426,7 +1425,7 @@ PHP_MSGPACK_API void
 php_msgpack_unserialize_destroy(php_msgpack_unserialize_data_t *data)
 {
     void *next;
-    php_msgpack_unserialize_entries_t *entries = (*data)->first;
+    php_msgpack_unserialize_entries_t *entries = data->first;
 
     while (entries) {
         next = entries->next;
