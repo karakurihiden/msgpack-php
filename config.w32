@@ -1,0 +1,9 @@
+// $Id$
+// vim:ft=javascript
+
+ARG_ENABLE("msgpack", "for MessagePack support", "yes");
+
+if (PHP_MSGPACK != "no") {
+   EXTENSION("msgpack", "msgpack.c", PHP_MSGPACK_SHARED, "");
+   ADD_SOURCES(configure_module_dirname, "serialize.c unserialize.c", "msgpack");
+}
